@@ -42,7 +42,7 @@
       <v-col>
         <v-data-table
           dense
-          :headers="headers"
+          :headers="headersMaster"
           :items="master"
           item-key="name"
           class="elevation-1"
@@ -127,6 +127,8 @@
           item-key="name"
           class="elevation-1"
           :search="search"
+          :single-select="singleSelect"
+          show-select
         >
           <template v-slot:[`item.iaq_datetime`]="{ item }">
             <span>{{ formatTime(item.iaq_datetime) }}</span>
@@ -151,16 +153,22 @@
               <span style="color: black">{{ item.iaq_PM25 }}</span>
             </v-chip>
           </template>
-          <template v-slot:[`item.calibate`]="{ item }">
+          <!-- <template v-slot:[`item.calibate`]="{ item }">
             <v-simple-checkbox
               v-model="item.calibate"
               disabled
             ></v-simple-checkbox>
-          </template>
+          </template> -->
           <template v-slot:[`item.actions`]="{ item }">
-            <v-icon small class="mr-2" @click="editItem(item)"> mdi-pencil</v-icon>
-            <v-icon small class="mr-2" @click="deleteItem(item)"> mdi-file-document </v-icon>
-            <v-icon small @click="deleteItem(item)"> mdi-playlist-check </v-icon>
+            <v-icon small class="mr-2" @click="editItem(item)">
+              mdi-pencil</v-icon
+            >
+            <v-icon small class="mr-2" @click="deleteItem(item)">
+              mdi-file-document
+            </v-icon>
+            <v-icon small @click="deleteItem(item)">
+              mdi-playlist-check
+            </v-icon>
           </template>
         </v-data-table>
       </v-col>
@@ -189,16 +197,31 @@ export default {
     timer: {},
     dialogl: false,
     dialogmaster: false,
+    headersMaster: [
+      {
+        text: "Date",
+        align: "center",
+        sortable: true,
+        value: "iaq_datetime",
+      },
+      { text: "MAC", value: "iaq_MAC", align: "center" },
+      { text: "Humidity (%)", value: "iaq_RH", align: "center" },
+      { text: "Temperature (°C)", value: "iaq_TEMP", align: "center" },
+      { text: "CO2 (ppm)", value: "iaq_CO2", align: "center" },
+      { text: "TVOC (ppb)", value: "iaq_TVOC", align: "center" },
+      { text: "PM10 (ug/m3)", value: "iaq_PM10", align: "center" },
+      { text: "PM2.5 (ug/m3)", value: "iaq_PM25", align: "center" },
+    ],
     headers: [
       {
-        text: "MAC",
+        text: "Date",
         align: "center",
         sortable: false,
-        value: "iaq_MAC",
+        value: "iaq_datetime",
       },
       // { text: "Project", value: "name", align: "start"},
-      // { text: "Date", value: "iaq_datetime", align: "start"},
-      // { text: "MAC", value: "iaq_MAC", align: "center" },
+      //  { text: "Date", value: "iaq_datetime", align: "center" },
+      { text: "MAC", value: "iaq_MAC", align: "center" },
       { text: "Humidity (%)", value: "iaq_RH", align: "center" },
       { text: "Temperature (°C)", value: "iaq_TEMP", align: "center" },
       { text: "CO2 (ppm)", value: "iaq_CO2", align: "center" },
@@ -206,7 +229,6 @@ export default {
       { text: "PM10 (ug/m3)", value: "iaq_PM10", align: "center" },
       { text: "PM2.5 (ug/m3)", value: "iaq_PM25", align: "center" },
       { text: "Actions", value: "actions", align: "center" },
-      { text: "calibate", value: "calibate", align: "center" }
     ],
   }),
   created() {
@@ -288,11 +310,9 @@ export default {
     },
     editItem(item) {
       this.itemData = Object.assign({}, item);
-      window.open(`http://${this.itemData.iaq_IP}:7878`,'_blank');
+      window.open(`http://${this.itemData.iaq_IP}:7878`, "_blank");
     },
-    checkDataItem() {
-      
-    },
+    checkDataItem() {},
     setColorIAQ(value, type) {
       switch (type) {
         case "iaq_CO2": {
