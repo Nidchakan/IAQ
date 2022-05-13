@@ -29,7 +29,7 @@
 
     <v-main>
       <v-row>
-        <v-col cols="10">
+        <v-col cols="12">
           <router-view />
         </v-col>
       </v-row>

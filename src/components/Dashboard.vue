@@ -61,7 +61,7 @@
           </template>
           <template v-slot:[`item.checkData`]="{ item }">
             <v-row justify="center">
-              <v-dialog v-model="dialogmaster"  max-width="290">
+              <v-dialog v-model="dialogmaster" max-width="290">
                 <template v-slot:activator="{ on, attrs }">
                   <v-btn
                     class="ma-2"
@@ -79,8 +79,6 @@
                   <v-card-title class="text-h5">
                     Use Google's location service?
                   </v-card-title>
-                 
-                
                 </v-card>
               </v-dialog></v-row
             >
@@ -130,42 +128,6 @@
           class="elevation-1"
           :search="search"
         >
-          <template v-slot:[`item.edit`]="{ item }">
-            <v-btn
-              class="ma-2"
-              outlined
-              small
-              color="indigo"
-              @click="editItem(item)"
-            >
-              <v-icon>mdi-pencil</v-icon>
-            </v-btn>
-          </template>
-          <template v-slot:[`item.checkData`]="{ item }">
-            <v-row justify="center">
-              <v-dialog v-model="dialog"  max-width="290">
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn
-                    class="ma-2"
-                    outlined
-                    small
-                    color="indigo"
-                    v-on="on"
-                    v-bind="attrs"
-                    @click="checkDataItem(item)" 
-                    >
-                    <v-icon>mdi-playlist-check</v-icon>
-                  </v-btn>
-                </template>
-                <v-card>
-                  <v-card-title class="text-h5">
-                    Use Google's location service?
-                  </v-card-title>
-                </v-card>
-              </v-dialog></v-row
-            >
-            
-          </template>
           <template v-slot:[`item.iaq_datetime`]="{ item }">
             <span>{{ formatTime(item.iaq_datetime) }}</span>
           </template>
@@ -188,6 +150,17 @@
             <v-chip :color="setColorIAQ(item.iaq_PM25, 'iaq_PM25')" dark>
               <span style="color: black">{{ item.iaq_PM25 }}</span>
             </v-chip>
+          </template>
+          <template v-slot:[`item.calibate`]="{ item }">
+            <v-simple-checkbox
+              v-model="item.calibate"
+              disabled
+            ></v-simple-checkbox>
+          </template>
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-icon small class="mr-2" @click="editItem(item)"> mdi-pencil</v-icon>
+            <v-icon small class="mr-2" @click="deleteItem(item)"> mdi-file-document </v-icon>
+            <v-icon small @click="deleteItem(item)"> mdi-playlist-check </v-icon>
           </template>
         </v-data-table>
       </v-col>
@@ -214,25 +187,26 @@ export default {
     timerEnabled: true,
     timerCount: 90,
     timer: {},
-    dialogl:false,
-    dialogmaster:false,
+    dialogl: false,
+    dialogmaster: false,
     headers: [
       {
-        text: "Date",
+        text: "MAC",
         align: "center",
         sortable: false,
-        value: "iaq_datetime",
+        value: "iaq_MAC",
       },
       // { text: "Project", value: "name", align: "start"},
       // { text: "Date", value: "iaq_datetime", align: "start"},
-      { text: "MAC", value: "iaq_MAC", align: "center" },
+      // { text: "MAC", value: "iaq_MAC", align: "center" },
       { text: "Humidity (%)", value: "iaq_RH", align: "center" },
       { text: "Temperature (°C)", value: "iaq_TEMP", align: "center" },
       { text: "CO2 (ppm)", value: "iaq_CO2", align: "center" },
       { text: "TVOC (ppb)", value: "iaq_TVOC", align: "center" },
       { text: "PM10 (ug/m3)", value: "iaq_PM10", align: "center" },
       { text: "PM2.5 (ug/m3)", value: "iaq_PM25", align: "center" },
-      { text: "CheckData", value: "checkData", align: "center" },
+      { text: "Actions", value: "actions", align: "center" },
+      { text: "calibate", value: "calibate", align: "center" }
     ],
   }),
   created() {
@@ -314,11 +288,10 @@ export default {
     },
     editItem(item) {
       this.itemData = Object.assign({}, item);
-      window.location.href = `http://${this.itemData.iaq_IP}:7878`;
+      window.open(`http://${this.itemData.iaq_IP}:7878`,'_blank');
     },
     checkDataItem() {
-      // this.itemData = Object.assign({}, item);
-      // window.location.href = `http://${this.itemData.iaq_IP}:7878`;
+      
     },
     setColorIAQ(value, type) {
       switch (type) {
