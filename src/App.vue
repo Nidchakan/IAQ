@@ -1,58 +1,55 @@
 <template>
   <v-app>
-    <v-app-bar app absolute color="white" dark>
-      <v-row>
-        <v-col cols="3">
-          <div class="d-flex">
-            <img
-              alt="Vuetify Name"
-              class="shrink mt-1"
-              contain
-              style="width: 150px"
-              src="../src/assets/logo_obotrons.png"
-            />
-          </div>
-        </v-col>
-        <v-col cols="7" style="text-align: center; align-self: center">
-          <v-btn style="color: red" text @click="$router.push('/')">
-            DashBoard
-          </v-btn>
-          <v-btn style="color: red" text @click="$router.push('/Config')">
-            Config
-          </v-btn>
-        </v-col>
-        <v-col cols="2" style="align-self: center">
-          <span class="mr-2" style="color: red">{{ date }}</span>
-        </v-col>
-      </v-row>
-    </v-app-bar>
+    <!-- <v-app-bar
+      app
+      color="primary"
+      dark
+    > -->
+      <!-- <div class="d-flex align-center">
+        <v-img
+          alt="Vuetify Logo"
+          class="shrink mr-2"
+          contain
+          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
+          transition="scale-transition"
+          width="40"
+        />
+
+        <v-img
+          alt="Vuetify Name"
+          class="shrink mt-1 hidden-sm-and-down"
+          contain
+          min-width="100"
+          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
+          width="100"
+        />
+      </div> -->
+<!-- 
+      <v-spacer></v-spacer> -->
+
+      <!-- <v-btn
+        href="https://github.com/vuetifyjs/vuetify/releases/latest"
+        target="_blank"
+        text
+      >
+        <span class="mr-2">Latest Release</span>
+        <v-icon>mdi-open-in-new</v-icon>
+      </v-btn> -->
+    <!-- </v-app-bar> -->
 
     <v-main>
-      <v-row>
-        <v-col cols="12">
-          <router-view />
-        </v-col>
-      </v-row>
+      <router-view/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import moment from "moment";
 
 export default {
-  name: "App",
-
-  components: {},
+  name: 'App',
 
   data: () => ({
-    date: "",
+    //
   }),
-  mounted() {
-    setInterval(() => {
-      this.date = moment(Date()).format("DD MMMM  YYYY | HH:mm:ss");
-    }, 1000);
-  },
 };
 </script>
-

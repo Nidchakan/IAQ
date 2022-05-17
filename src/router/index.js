@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
-import Config from '../components/Config.vue'
+import Dashboard from '../components/Dashboard.vue'
 
 Vue.use(VueRouter)
 
@@ -12,9 +12,9 @@ const routes = [
     component: Home
   },
   {
-    path: '/Config',
-    name: 'Config',
-    component: Config
+    path: '/Dashboard',
+    name: 'Dashboard',
+    component: Dashboard
   }
 ]
 
