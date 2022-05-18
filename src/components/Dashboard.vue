@@ -36,7 +36,7 @@
           outlined
           color="indigo"
           style="align-self: flex-start"
-          @click="reloadPage"
+          @click="reloadPage()"
         >
           {{ timerCount }}
           <v-icon>mdi-cached</v-icon>
@@ -65,7 +65,7 @@
                     :items="itemsMacIAQ"
                     hide-details
                     label="Master mac"
-                    @change="(event) => getProjectByKey(this.values)"
+                    @change="(event) => getProjectByMaster(this.valuesMacIAQ)"
                   ></v-autocomplete>
                 </v-list-item>
                 <v-list-item
@@ -83,9 +83,9 @@
                 <v-divider class="my-2"></v-divider>
                 <v-list-item link color="grey lighten-4">
                   <v-list-item-content>
-                    <v-list-item-title @click="RefreshMasterIAQ()">
+                    <v-list-item-title @click="getProjectByMaster()">
                       Refresh
-                       <v-icon>mdi-cached</v-icon>
+                      <v-icon>mdi-cached</v-icon>
                     </v-list-item-title>
                   </v-list-item-content>
                 </v-list-item>
@@ -141,14 +141,14 @@
                         <v-btn
                           color="red darken-1"
                           text
-                          @click="setAutoCalibate()"
+                          @click="dialog = false"
                         >
                           Cancel
                         </v-btn>
                         <v-btn
                           color="green darken-1"
                           text
-                          @click="dialog = false"
+                          @click="setAutoCalibate()"
                         >
                           OK
                         </v-btn>
@@ -219,6 +219,14 @@
                         </v-icon>
                       </template>
                       <span>Calibate</span>
+                    </v-tooltip>
+                  </template>
+                  <template v-slot:[`item.iaq_MAC`]="{ item }">
+                    <v-tooltip bottom>
+                      <template v-slot:activator="{ on, attrs }">
+                        <span v-bind="attrs" v-on="on">{{ item.iaq_MAC }}</span>
+                      </template>
+                      <span>{{ item.projectName }}</span>
                     </v-tooltip>
                   </template>
                   <template v-slot:[`item.iaq_RH`]="{ item }">
@@ -305,7 +313,7 @@ export default {
     projectKey: [],
     masterdata: [],
     itemsMacIAQ: [],
-    valuesMacIAQ: [],
+    valuesMacIAQ: "",
     data: [],
     compareIAQ: [],
     itemData: {},
@@ -345,10 +353,17 @@ export default {
     ],
   }),
   created() {
-    this.getIAQ();
-    this.getIAQmaster();
+    this.readMasterMac();
   },
   methods: {
+    readMasterMac() {
+      axios.get("http://192.168.0.100/readmac_master.php").then((response) => {
+        if (response.status == 200) {
+          this.valuesMacIAQ = response.data.macID
+          this.getIAQ()
+        }
+      });
+    },
     getIAQ() {
       this.timerCount = 90;
       this.play;
@@ -362,8 +377,14 @@ export default {
           if (response.status == 200) {
             var dataItem = [];
             var itemProjectData = [];
+            var valueProjectData = [];
+            var itemProject = [];
             for (var i = 0; i < response.data.project.length; i++) {
               itemProjectData.push(response.data.project[i].name); // set Project Name List
+              if (response.data.project[i].name != "MAIN") {
+                valueProjectData.push(response.data.project[i].name);
+                itemProject.push(response.data.project[i].name);
+              }
               this.projectKey.push({
                 name: response.data.project[i].name,
                 value: response.data.project[i].data,
@@ -371,26 +392,41 @@ export default {
 
               for (var j = 0; j < response.data.project[i].data.length; j++) {
                 dataItem.push(response.data.project[i].data[j]);
+                if (response.data.project[i].name == "MAIN") {
+                  this.itemsMacIAQ.push(
+                    response.data.project[i].data[j].iaq_MAC
+                  );
+                }
               }
               this.data = dataItem;
 
               this.itemsProject = itemProjectData;
-              this.valuesProject = itemProjectData;
-              this.itemsCalibateProject = itemProjectData;
-              this.valuesCalibateProject = itemProjectData;
+              this.itemsCalibateProject = itemProject;
+              this.valuesCalibateProject = valueProjectData;
+
+              if (this.valuesProject.length == 0) {
+                this.valuesProject = this.itemsProject;
+              }
 
               var dataLastest = Object.assign({}, dataItem[dataItem.length]);
               this.dateTime = this.formatTime(dataLastest.iaq_datetime);
             }
-            this.cal();
+
             if (this.valuesProject.length != 0) {
               this.getProjectByKey();
+            } else {
+              this.cal();
+            }
+
+            if(this.valuesMacIAQ != "") {
+              this.getProjectByMaster()
             }
           }
         });
     },
     getProjectByKey() {
       var dataIAQ = [];
+      // this.valuesCalibateProject = this.valuesProject;
       if (this.valuesProject.length == 0) {
         this.getIAQ();
       } else if (this.valuesProject.length == 1) {
@@ -411,36 +447,34 @@ export default {
       this.data = dataIAQ;
       this.cal();
     },
-    getIAQmaster() {
+    getProjectByMaster() {
+      const result = this.data.filter((pj) => {
+        return pj.iaq_MAC == this.valuesMacIAQ;
+      });
+
+      this.masterdata = result[0];
+      this.itemsIAQ = [
+        ["Humidity(%)", result[0].iaq_RH],
+        ["Temperature(°C)", result[0].iaq_TEMP],
+        ["CO2(ppm)", result[0].iaq_CO2],
+        ["TVOC(ppb)", result[0].iaq_TVOC],
+        ["PM10(ug/m3)", result[0].iaq_PM10],
+        ["PM2.5(ug/m3)", result[0].iaq_PM25],
+        ["O2", result[0].iaq_O2],
+      ];
+      this.cal();
+      this.sendIAQmaster();
+    },
+    sendIAQmaster() {
+      this.saveFile();
       this.timerCount = 90;
       this.play;
       axios
-        .get("http://192.168.0.100/resultIAQ.php?mac_id=84F3EB868924", {
-          headers: {
-            "Project-Building": "OBT-TEST",
-          },
-        })
-        .then((response) => {
-          console.log(response.data);
-          if (response.status == 200) {
-            this.masterdata = response.data;
-            this.itemsMacIAQ.push(response.data.iaq_MAC);
-            this.valuesMacIAQ = this.itemsMacIAQ[0];
-            this.itemsIAQ = [
-              ["Humidity(%)", response.data.iaq_RH],
-              ["Temperature(°C)", response.data.iaq_TEMP],
-              ["CO2(ppm)", response.data.iaq_CO2],
-              ["TVOC(ppb)", response.data.iaq_TVOC],
-              ["PM10(ug/m3)", response.data.iaq_PM10],
-              ["PM2.5(ug/m3)", response.data.iaq_PM25],
-              ["O2", response.data.iaq_O2],
-            ];
-          }
-          this.cal();
-        });
-    },
-    RefreshMasterIAQ() {
-      this.getIAQmaster();
+        .post(
+          `http://192.168.0.100/mastercalib.php?master_mac=${this.valuesMacIAQ}`
+        )
+        .then();
+      this.cal();
     },
     reloadPage() {
       this.getIAQ();
@@ -451,10 +485,12 @@ export default {
     },
     CalibateIAQ(item) {
       this.itemData = Object.assign({}, item);
-      window.open(`http://${this.itemData.iaq_IP}:7878/`, "_blank");
+      window.open(
+        `http://${this.itemData.iaq_IP}:7878/calibrate.html`,
+        "_blank"
+      );
     },
-    reportDataItem(item) {
-      console.log(item);
+    reportDataItem() {
       alert("This feature will be coming up");
     },
     setColorIAQ(value, type) {
@@ -508,50 +544,73 @@ export default {
     formatTime(time) {
       return moment(time).format("DD MMM YYYY \t HH:mm");
     },
-    changePage(page) {
-      console.log(page);
-    },
     setAutoCalibate() {
-      this.dialog = false;
+      for (var index in this.valuesCalibateProject) {
+        axios
+          .get(
+            `http://192.168.0.100/calIAQ.php?project=${this.valuesCalibateProject[index]}`,
+            {
+              headers: {
+                "Master-Project": "MAIN-MASTER",
+              },
+            }
+          )
+          .then((response) => {
+            if (response.status == 200) {
+              this.dialog = false;
+            }
+          });
+      }
     },
 
     cal() {
       var itemData = [];
-      for (var entry in this.data) {
-        var temp = this.data[entry].iaq_TEMP - this.masterdata.iaq_TEMP;
-        var humid = this.data[entry].iaq_RH - this.masterdata.iaq_RH;
-        var co2 = this.data[entry].iaq_CO2 - this.masterdata.iaq_CO2;
-        var tvoc = this.data[entry].iaq_TVOC - this.masterdata.iaq_TVOC;
-        var pm10 = this.data[entry].iaq_PM10 - this.masterdata.iaq_PM10;
-        var pm25 = this.data[entry].iaq_PM25 - this.masterdata.iaq_PM25;
-        itemData.push({
-          iaq_MAC: this.data[entry].iaq_MAC,
-          iaq_TEMP: this.data[entry].iaq_TEMP,
-          iaq_IP: this.data[entry].iaq_IP,
-          iaq_RH: this.data[entry].iaq_RH,
-          iaq_CO2: this.data[entry].iaq_CO2,
-          iaq_TVOC: this.data[entry].iaq_TVOC,
-          iaq_PM10: this.data[entry].iaq_PM10,
-          iaq_PM25: this.data[entry].iaq_PM25,
-          compare_iaq_TEMP: temp.toFixed(2),
-          compare_iaq_RH: humid.toFixed(2),
-          compare_iaq_CO2: co2,
-          compare_iaq_TVOC: tvoc,
-          compare_iaq_PM10: pm10,
-          compare_iaq_PM25: pm25,
-          status_CO2: this.checkIaqValue(
-            this.masterdata.iaq_CO2,
-            this.data[entry].iaq_CO2
-          ),
-        });
+      for (var idnex in this.projectKey) {
+        for (var entry in this.projectKey[idnex].value) {
+          var temp =
+            this.projectKey[idnex].value[entry].iaq_TEMP -
+            this.masterdata.iaq_TEMP;
+          var humid =
+            this.projectKey[idnex].value[entry].iaq_RH - this.masterdata.iaq_RH;
+          var co2 =
+            this.projectKey[idnex].value[entry].iaq_CO2 -
+            this.masterdata.iaq_CO2;
+          var tvoc =
+            this.projectKey[idnex].value[entry].iaq_TVOC -
+            this.masterdata.iaq_TVOC;
+          var pm10 =
+            this.projectKey[idnex].value[entry].iaq_PM10 -
+            this.masterdata.iaq_PM10;
+          var pm25 =
+            this.projectKey[idnex].value[entry].iaq_PM25 -
+            this.masterdata.iaq_PM25;
+          itemData.push({
+            projectName: this.projectKey[idnex].name,
+            iaq_MAC: this.projectKey[idnex].value[entry].iaq_MAC,
+            iaq_TEMP: this.projectKey[idnex].value[entry].iaq_TEMP,
+            iaq_IP: this.projectKey[idnex].value[entry].iaq_IP,
+            iaq_RH: this.projectKey[idnex].value[entry].iaq_RH,
+            iaq_CO2: this.projectKey[idnex].value[entry].iaq_CO2,
+            iaq_TVOC: this.projectKey[idnex].value[entry].iaq_TVOC,
+            iaq_PM10: this.projectKey[idnex].value[entry].iaq_PM10,
+            iaq_PM25: this.projectKey[idnex].value[entry].iaq_PM25,
+            compare_iaq_TEMP: temp.toFixed(2),
+            compare_iaq_RH: humid.toFixed(2),
+            compare_iaq_CO2: co2,
+            compare_iaq_TVOC: tvoc,
+            compare_iaq_PM10: pm10,
+            compare_iaq_PM25: pm25,
+          });
+        }
       }
+
       this.data = itemData;
-      console.log(itemData);
     },
-    checkIaqValue(compare, value) {
-      if (compare > value) return "positive";
-      else if (compare < value) return "negative";
-      return "withdraw";
+    saveFile: function () {
+      var currentMac = { mac: this.valuesMacIAQ };
+      let data = JSON.stringify(currentMac);
+      window.localStorage.setItem("mac.json", data);
+      // console.log(JSON.parse(window.localStorage.getItem("mac.json")));
     },
   },
   mounted() {
@@ -559,6 +618,7 @@ export default {
       this.timerCount--;
       if (this.timerCount == 0) {
         this.getIAQ();
+        this.getProjectByMaster();
         this.timerCount = 90;
       }
     }, 1000);
