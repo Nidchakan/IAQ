@@ -124,7 +124,7 @@
                             <v-col cols="12">
                               <v-autocomplete
                                 v-model="valuesCalibateProject"
-                                :items="itemsCalibateProject"
+                                :items="itemsProject"
                                 outlined
                                 dense
                                 chips
@@ -312,6 +312,7 @@ export default {
     valuesProject: [],
     projectKey: [],
     masterdata: [],
+    masterListdata: [],
     itemsMacIAQ: [],
     valuesMacIAQ: "",
     data: [],
@@ -359,8 +360,8 @@ export default {
     readMasterMac() {
       axios.get("http://192.168.0.100/readmac_master.php").then((response) => {
         if (response.status == 200) {
-          this.valuesMacIAQ = response.data.macID
-          this.getIAQ()
+          this.valuesMacIAQ = response.data.macID;
+          this.getIAQ();
         }
       });
     },
@@ -374,99 +375,115 @@ export default {
           },
         })
         .then((response) => {
+          this.itemsProject = [];
+          this.data = [];
           if (response.status == 200) {
-            var dataItem = [];
-            var itemProjectData = [];
-            var valueProjectData = [];
-            var itemProject = [];
             for (var i = 0; i < response.data.project.length; i++) {
-              itemProjectData.push(response.data.project[i].name); // set Project Name List
               if (response.data.project[i].name != "MAIN") {
-                valueProjectData.push(response.data.project[i].name);
-                itemProject.push(response.data.project[i].name);
-              }
-              this.projectKey.push({
-                name: response.data.project[i].name,
-                value: response.data.project[i].data,
-              });
-
-              for (var j = 0; j < response.data.project[i].data.length; j++) {
-                dataItem.push(response.data.project[i].data[j]);
-                if (response.data.project[i].name == "MAIN") {
+                this.itemsProject.push(response.data.project[i].name);
+                 this.projectKey.push({
+                  name: response.data.project[i].name,
+                  value: response.data.project[i].data,
+                });
+                for (
+                  var normal = 0;
+                  normal < response.data.project[i].data.length;
+                  normal++
+                ) {
+                  this.data.push({
+                    projectName: response.data.project[i].name,
+                    iaq_RH: response.data.project[i].data[normal].iaq_RH,
+                    iaq_TEMP: response.data.project[i].data[normal].iaq_TEMP,
+                    iaq_MAC: response.data.project[i].data[normal].iaq_MAC,
+                    iaq_CO2: response.data.project[i].data[normal].iaq_CO2,
+                    iaq_TVOC: response.data.project[i].data[normal].iaq_TVOC,
+                    iaq_PM10: response.data.project[i].data[normal].iaq_PM10,
+                    iaq_PM25: response.data.project[i].data[normal].iaq_PM25,
+                  });
+                }
+               
+              } else {
+                for (
+                  var main = 0;
+                  main < response.data.project[i].data.length;
+                  main++
+                ) {
+                  this.masterListdata.push(response.data.project[i].data[main]);
                   this.itemsMacIAQ.push(
-                    response.data.project[i].data[j].iaq_MAC
+                    response.data.project[i].data[main].iaq_MAC
                   );
                 }
               }
-              this.data = dataItem;
-
-              this.itemsProject = itemProjectData;
-              this.itemsCalibateProject = itemProject;
-              this.valuesCalibateProject = valueProjectData;
-
-              if (this.valuesProject.length == 0) {
-                this.valuesProject = this.itemsProject;
-              }
-
-              var dataLastest = Object.assign({}, dataItem[dataItem.length]);
-              this.dateTime = this.formatTime(dataLastest.iaq_datetime);
             }
-
-            if (this.valuesProject.length != 0) {
-              this.getProjectByKey();
-            } else {
+            if (this.valuesProject.length == 0) {
+              this.valuesProject = this.itemsProject;
               this.cal();
+            } else {
+              this.getProjectByKey();
             }
-
-            if(this.valuesMacIAQ != "") {
-              this.getProjectByMaster()
+            if (this.valuesMacIAQ != "") {
+              this.getProjectByMaster();
             }
+            this.valuesCalibateProject = this.valuesProject;
+            this.dateTime = this.formatTime(
+              Object.assign({}, this.data[this.data.length]).iaq_datetime
+            );
           }
         });
     },
+    setDataFromProjectByKey(itemResult) {
+      for (var k = 0; k < itemResult[0].value.length; k++) {
+        this.data.push({
+          projectName: itemResult[0].name,
+          iaq_RH: itemResult[0].value[k].iaq_RH,
+          iaq_TEMP: itemResult[0].value[k].iaq_TEMP,
+          iaq_MAC: itemResult[0].value[k].iaq_MAC,
+          iaq_CO2: itemResult[0].value[k].iaq_CO2,
+          iaq_TVOC: itemResult[0].value[k].iaq_TVOC,
+          iaq_PM10: itemResult[0].value[k].iaq_PM10,
+          iaq_PM25: itemResult[0].value[k].iaq_PM25,
+        });
+      }
+    },
     getProjectByKey() {
-      var dataIAQ = [];
-      // this.valuesCalibateProject = this.valuesProject;
+      this.data = [];
+      this.valuesCalibateProject = this.valuesProject;
+      console.log(this.valuesProject);
       if (this.valuesProject.length == 0) {
         this.getIAQ();
       } else if (this.valuesProject.length == 1) {
         const result = this.projectKey.filter((pj) => {
           return pj.name == this.valuesProject;
         });
-        dataIAQ = result[0].value;
+        this.setDataFromProjectByKey(result);
       } else if (this.valuesProject.length > 1) {
         for (var i = 0; i < this.valuesProject.length; i++) {
           const result = this.projectKey.filter((pj) => {
             return pj.name == this.valuesProject[i];
           });
-          for (var j = 0; j < result[0].value.length; j++) {
-            dataIAQ.push(result[0].value[j]);
-          }
+          this.setDataFromProjectByKey(result);
         }
       }
-      this.data = dataIAQ;
       this.cal();
     },
     getProjectByMaster() {
-      const result = this.data.filter((pj) => {
+      const resultData = this.masterListdata.filter((pj) => {
         return pj.iaq_MAC == this.valuesMacIAQ;
       });
-
-      this.masterdata = result[0];
+      this.masterdata = resultData[0];
       this.itemsIAQ = [
-        ["Humidity(%)", result[0].iaq_RH],
-        ["Temperature(°C)", result[0].iaq_TEMP],
-        ["CO2(ppm)", result[0].iaq_CO2],
-        ["TVOC(ppb)", result[0].iaq_TVOC],
-        ["PM10(ug/m3)", result[0].iaq_PM10],
-        ["PM2.5(ug/m3)", result[0].iaq_PM25],
-        ["O2", result[0].iaq_O2],
+        ["Humidity(%)", resultData[0].iaq_RH],
+        ["Temperature(°C)", resultData[0].iaq_TEMP],
+        ["CO2(ppm)", resultData[0].iaq_CO2],
+        ["TVOC(ppb)", resultData[0].iaq_TVOC],
+        ["PM10(ug/m3)", resultData[0].iaq_PM10],
+        ["PM2.5(ug/m3)", resultData[0].iaq_PM25],
+        ["O2", resultData[0].iaq_O2],
       ];
       this.cal();
       this.sendIAQmaster();
     },
     sendIAQmaster() {
-      this.saveFile();
       this.timerCount = 90;
       this.play;
       axios
@@ -548,7 +565,7 @@ export default {
       for (var index in this.valuesCalibateProject) {
         axios
           .get(
-            `http://192.168.0.100/calIAQ.php?project=${this.valuesCalibateProject[index]}`,
+            `http://192.168.0.100/calrealtime.php?project=${this.valuesCalibateProject[index]}`,
             {
               headers: {
                 "Master-Project": "MAIN-MASTER",
@@ -564,53 +581,34 @@ export default {
     },
 
     cal() {
-      var itemData = [];
-      for (var idnex in this.projectKey) {
-        for (var entry in this.projectKey[idnex].value) {
-          var temp =
-            this.projectKey[idnex].value[entry].iaq_TEMP -
-            this.masterdata.iaq_TEMP;
-          var humid =
-            this.projectKey[idnex].value[entry].iaq_RH - this.masterdata.iaq_RH;
-          var co2 =
-            this.projectKey[idnex].value[entry].iaq_CO2 -
-            this.masterdata.iaq_CO2;
-          var tvoc =
-            this.projectKey[idnex].value[entry].iaq_TVOC -
-            this.masterdata.iaq_TVOC;
-          var pm10 =
-            this.projectKey[idnex].value[entry].iaq_PM10 -
-            this.masterdata.iaq_PM10;
-          var pm25 =
-            this.projectKey[idnex].value[entry].iaq_PM25 -
-            this.masterdata.iaq_PM25;
-          itemData.push({
-            projectName: this.projectKey[idnex].name,
-            iaq_MAC: this.projectKey[idnex].value[entry].iaq_MAC,
-            iaq_TEMP: this.projectKey[idnex].value[entry].iaq_TEMP,
-            iaq_IP: this.projectKey[idnex].value[entry].iaq_IP,
-            iaq_RH: this.projectKey[idnex].value[entry].iaq_RH,
-            iaq_CO2: this.projectKey[idnex].value[entry].iaq_CO2,
-            iaq_TVOC: this.projectKey[idnex].value[entry].iaq_TVOC,
-            iaq_PM10: this.projectKey[idnex].value[entry].iaq_PM10,
-            iaq_PM25: this.projectKey[idnex].value[entry].iaq_PM25,
-            compare_iaq_TEMP: temp.toFixed(2),
-            compare_iaq_RH: humid.toFixed(2),
-            compare_iaq_CO2: co2,
-            compare_iaq_TVOC: tvoc,
-            compare_iaq_PM10: pm10,
-            compare_iaq_PM25: pm25,
-          });
-        }
+      var dataItem = []
+      for (var entry in this.data) {
+        console.log(this.data[entry])
+        var temp = this.data[entry].iaq_TEMP - this.masterdata.iaq_TEMP;
+        var humid = this.data[entry].iaq_RH - this.masterdata.iaq_RH;
+        var co2 = this.data[entry].iaq_CO2 - this.masterdata.iaq_CO2;
+        var tvoc = this.data[entry].iaq_TVOC - this.masterdata.iaq_TVOC;
+        var pm10 = this.data[entry].iaq_PM10 - this.masterdata.iaq_PM10;
+        var pm25 = this.data[entry].iaq_PM25 - this.masterdata.iaq_PM25;
+        dataItem.push({
+          projectName: this.data[entry].projectName,
+          iaq_MAC: this.data[entry].iaq_MAC,
+          iaq_TEMP: this.data[entry].iaq_TEMP,
+          iaq_IP: this.data[entry].iaq_IP,
+          iaq_RH: this.data[entry].iaq_RH,
+          iaq_CO2: this.data[entry].iaq_CO2,
+          iaq_TVOC: this.data[entry].iaq_TVOC,
+          iaq_PM10: this.data[entry].iaq_PM10,
+          iaq_PM25: this.data[entry].iaq_PM25,
+          compare_iaq_TEMP: temp.toFixed(2),
+          compare_iaq_RH: humid.toFixed(2),
+          compare_iaq_CO2: co2,
+          compare_iaq_TVOC: tvoc,
+          compare_iaq_PM10: pm10,
+          compare_iaq_PM25: pm25,
+        });
       }
-
-      this.data = itemData;
-    },
-    saveFile: function () {
-      var currentMac = { mac: this.valuesMacIAQ };
-      let data = JSON.stringify(currentMac);
-      window.localStorage.setItem("mac.json", data);
-      // console.log(JSON.parse(window.localStorage.getItem("mac.json")));
+      this.data = dataItem
     },
   },
   mounted() {
